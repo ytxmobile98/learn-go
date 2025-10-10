@@ -1,0 +1,21 @@
+items:
+  - &Alice
+    name: 'Alice'
+    id: 1
+  - &Bob
+    name: 'Bob'
+    id: 2
+  - &Carol
+    name: 'Carol'
+    id: 3
+  - &Dave
+    name: 'Dave'
+    id: 4
+
+groups:
+  A:
+    - *Alice
+    - *Bob
+  B:
+    - *Carol
+    - *Dave
