@@ -9,4 +9,5 @@
 
 * [Channel](./examples/channel/)
 * [Embedded fields](./examples/embedded-fields/)
-* [JSON not escape HTML](./examples/bson-inline/)
+* [JSON inline](./examples/json-inline/)
+* [JSON not escape HTML](./examples/json-not-escape-html/)
