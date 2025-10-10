@@ -70,7 +70,7 @@ func main() {
 	for group, items := range data.Groups {
 		fmt.Println(group, items)
 		for _, item := range items {
-			fmt.Println("  ", item)
+			fmt.Printf("  (%p) %+v\n", item, *item)
 		}
 	}
 }
