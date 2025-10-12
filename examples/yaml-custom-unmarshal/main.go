@@ -27,31 +27,83 @@ func unmarshalYaml[T any](filename string) (*T, error) {
 }
 
 type Data struct {
-	Items  Anchors `yaml:"items"`
-	Groups Refs    `yaml:"groups"`
+	Items  Anchors[Person]      `yaml:"items"`
+	Groups map[string][]*Person `yaml:"groups"`
 }
 
 type Person struct {
 	Name string `yaml:"name"`
 	Id   int    `yaml:"id"`
 }
-type Anchors map[string]*Person
-type Refs map[string][]*Person
 
-func (a *Anchors) UnmarshalYAML(value *yaml.Node) error {
-	*a = make(Anchors)
+type Anchors[T any] map[string]*T
 
-	for _, c := range value.Content {
-		anchorName := c.Anchor
+func (a Anchors[T]) PutAnchor(node *yaml.Node) error {
+	if node.Anchor == "" {
+		return nil
+	}
 
-		var person Person
-		err := c.Decode(&person)
+	var value T
+	err := node.Decode(&value)
+	if err != nil {
+		return err
+	}
+
+	a[node.Anchor] = &value
+	return nil
+}
+
+func (a Anchors[T]) ResolveAlias(alias string) *T {
+	if a == nil {
+		return nil
+	}
+	return a[alias]
+}
+
+func (d *Data) UnmarshalYAML(value *yaml.Node) error {
+	if d.Items == nil {
+		d.Items = make(Anchors[Person])
+	}
+	if d.Groups == nil {
+		d.Groups = make(map[string][]*Person)
+	}
+
+	// process the `items` and `groups` nodes
+	var temp struct {
+		Items  yaml.Node            `yaml:"items"`
+		Groups map[string]yaml.Node `yaml:"groups"`
+	}
+	err := value.Decode(&temp)
+	if err != nil {
+		return err
+	}
+
+	// process items, and save them into the anchors map
+	for _, node := range temp.Items.Content {
+		err := d.Items.PutAnchor(node)
 		if err != nil {
 			return err
 		}
-
-		(*a)[anchorName] = &person
 	}
+
+	// resolve group members from anchors map
+	for groupName, nodes := range temp.Groups {
+		group := make([]*Person, 0, len(nodes.Content))
+
+		for _, node := range nodes.Content {
+			if node.Kind != yaml.AliasNode {
+				continue
+			}
+
+			person := d.Items.ResolveAlias(node.Value)
+			if person == nil {
+				return fmt.Errorf("undefined anchor: %s", node.Value)
+			}
+			group = append(group, person)
+		}
+		d.Groups[groupName] = group
+	}
+
 	return nil
 }
 
@@ -63,14 +115,5 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	for anchor, item := range data.Items {
-		fmt.Printf("%s: (%p) %+v\n", anchor, item, *item)
-	}
-	for group, items := range data.Groups {
-		fmt.Println(group, items)
-		for _, item := range items {
-			fmt.Printf("  (%p) %+v\n", item, *item)
-		}
-	}
+	fmt.Printf("%+v\n", data)
 }
