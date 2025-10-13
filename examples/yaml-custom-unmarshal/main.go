@@ -70,8 +70,8 @@ func (d *Data) UnmarshalYAML(value *yaml.Node) error {
 
 	// process the `items` and `groups` nodes
 	var temp struct {
-		Items  []yaml.Node          `yaml:"items"`
-		Groups map[string]yaml.Node `yaml:"groups"`
+		Items  []yaml.Node            `yaml:"items"`
+		Groups map[string][]yaml.Node `yaml:"groups"`
 	}
 	err := value.Decode(&temp)
 	if err != nil {
@@ -88,9 +88,9 @@ func (d *Data) UnmarshalYAML(value *yaml.Node) error {
 
 	// resolve group members from anchors map
 	for groupName, nodes := range temp.Groups {
-		group := make([]*Person, 0, len(nodes.Content))
+		group := make([]*Person, 0, len(nodes))
 
-		for _, node := range nodes.Content {
+		for _, node := range nodes {
 			if node.Kind != yaml.AliasNode {
 				continue
 			}
