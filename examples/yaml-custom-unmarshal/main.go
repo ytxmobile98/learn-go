@@ -70,7 +70,7 @@ func (d *Data) UnmarshalYAML(value *yaml.Node) error {
 
 	// process the `items` and `groups` nodes
 	var temp struct {
-		Items  yaml.Node            `yaml:"items"`
+		Items  []yaml.Node          `yaml:"items"`
 		Groups map[string]yaml.Node `yaml:"groups"`
 	}
 	err := value.Decode(&temp)
@@ -79,8 +79,8 @@ func (d *Data) UnmarshalYAML(value *yaml.Node) error {
 	}
 
 	// process items, and save them into the anchors map
-	for _, node := range temp.Items.Content {
-		err := d.Items.PutAnchor(node)
+	for _, node := range temp.Items {
+		err := d.Items.PutAnchor(&node)
 		if err != nil {
 			return err
 		}
