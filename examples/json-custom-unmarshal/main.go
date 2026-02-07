@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"example.com/utils"
 )
 
 type (
@@ -19,46 +21,40 @@ const (
 	LogLevelFatal
 )
 
-const (
-	LogLevelDebugStr LogLevelStr = "debug"
-	LogLevelInfoStr  LogLevelStr = "info"
-	LogLevelWarnStr  LogLevelStr = "warn"
-	LogLevelErrorStr LogLevelStr = "error"
-	LogLevelFatalStr LogLevelStr = "fatal"
+var logLevels = utils.BuildBidiMap(
+	[]utils.BidiMapItem[LogLevelStr, LogLevel]{
+		{Key: "debug", Value: LogLevelDebug},
+		{Key: "info", Value: LogLevelInfo},
+		{Key: "warn", Value: LogLevelWarn},
+		{Key: "error", Value: LogLevelError},
+		{Key: "fatal", Value: LogLevelFatal},
+	},
 )
 
 func (l *LogLevel) UnmarshalJSON(data []byte) error {
 	// first try to unmarshal as its usual type
-	var level any
-	err := json.Unmarshal(data, &level)
+	var v any
+	err := json.Unmarshal(data, &v)
 	if err != nil {
 		return err
 	}
 
 	// then check type and do the conversion
-	switch logLevel := level.(type) {
+	switch level := v.(type) {
 	case float64:
-		*l = LogLevel(logLevel)
-	case string:
-		logLevelStr := LogLevelStr(strings.ToLower(logLevel))
-		switch logLevelStr {
-		case LogLevelDebugStr:
-			*l = LogLevelDebug
-		case LogLevelInfoStr:
-			*l = LogLevelInfo
-		case LogLevelWarnStr:
-			*l = LogLevelWarn
-		case LogLevelErrorStr:
-			*l = LogLevelError
-		case LogLevelFatalStr:
-			*l = LogLevelFatal
-		default:
-			return fmt.Errorf("invalid log level: %s", level)
+		logLevel := LogLevel(level)
+		if _, ok := logLevels.GetKey(logLevel); ok {
+			*l = logLevel
+			return nil
 		}
-	default:
-		return fmt.Errorf("invalid log level: %v", level)
+	case string:
+		logLevelStr := LogLevelStr(strings.ToLower(level))
+		if logLevel, ok := logLevels.GetValue(logLevelStr); ok {
+			*l = logLevel
+			return nil
+		}
 	}
-	return nil
+	return fmt.Errorf("invalid log level: %v", v)
 }
 
 func (l *LogLevel) MarshalJSON() ([]byte, error) {
@@ -66,20 +62,10 @@ func (l *LogLevel) MarshalJSON() ([]byte, error) {
 		return json.Marshal(nil)
 	}
 
-	switch *l {
-	case LogLevelDebug:
-		return json.Marshal(LogLevelDebugStr)
-	case LogLevelInfo:
-		return json.Marshal(LogLevelInfoStr)
-	case LogLevelWarn:
-		return json.Marshal(LogLevelWarnStr)
-	case LogLevelError:
-		return json.Marshal(LogLevelErrorStr)
-	case LogLevelFatal:
-		return json.Marshal(LogLevelFatalStr)
-	default:
-		return nil, fmt.Errorf("invalid log level: %v", *l)
+	if logLevelStr, ok := logLevels.GetKey(*l); ok {
+		return json.Marshal(logLevelStr)
 	}
+	return nil, fmt.Errorf("invalid log level: %v", *l)
 }
 
 type Test struct {
@@ -116,8 +102,8 @@ func main() {
 	{ // test marshal data
 		fmt.Println("========== marshal data ==========")
 		for _, test := range []Test{
-			{LogLevel: LogLevelWarn},
-			{LogLevel: LogLevelFatal},
+			{LogLevel: LogLevelWarn},  // Should output: {"logLevel":"warn"}
+			{LogLevel: LogLevelFatal}, // Should output: {"logLevel":"fatal"}
 		} {
 			data, err := marshal(&test)
 			if err != nil {
