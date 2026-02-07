@@ -13,6 +13,13 @@ type (
 	LogLevelStr string
 )
 
+func (l LogLevel) String() string {
+	if s, ok := logLevels.GetKey(l); ok {
+		return string(s)
+	}
+	return ""
+}
+
 const (
 	LogLevelDebug LogLevel = iota
 	LogLevelInfo
@@ -85,8 +92,8 @@ func main() {
 	{ // test unmarshal data
 		fmt.Println("========== unmarshal data ==========")
 		for _, data := range [][]byte{
-			[]byte(`{"logLevel":1}`),      // Should output: {LogLevel:1}
-			[]byte(`{"logLevel":"warn"}`), // Should output: {LogLevel:2}
+			[]byte(`{"logLevel":1}`),      // Should output: {LogLevel:info}
+			[]byte(`{"logLevel":"warn"}`), // Should output: {LogLevel:warn}
 		} {
 			test, err := unmarshal(data)
 			if err != nil {
