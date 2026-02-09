@@ -44,13 +44,11 @@ func main() {
 
 		switch true {
 		case base.Coordinate != nil:
-			var coordinate Coordinate
-			err := json.Unmarshal(data, &coordinate)
-			fmt.Printf("Coordinate: %+v %v\n", coordinate, err)
+			err := json.Unmarshal(data, &base.Coordinate)
+			fmt.Printf("Coordinate: %+v %v\n", base.Coordinate, err)
 		case base.Name != nil:
-			var name Name
-			err := json.Unmarshal(data, &name)
-			fmt.Printf("Name: %+v %v\n", name, err)
+			err := json.Unmarshal(data, &base.Name)
+			fmt.Printf("Name: %+v %v\n", base.Name, err)
 		}
 	}
 
